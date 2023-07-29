@@ -1,0 +1,6 @@
+streamlit
+firebase_admin
+pydub
+PIL
+langchain
+openai

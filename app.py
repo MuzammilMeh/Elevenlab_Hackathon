@@ -1,10 +1,12 @@
 import streamlit as st
 import json
 import firebase_admin
-from firebase_admin import credentials, db
+from firebase_admin import credentials, db,firestore
 import base64
 from pydub import AudioSegment
 import io
+from utils import get_voice_sample,all_samples,upload_voice_semantics
+from voice_model import instant_voice_clone
 
 from PIL import Image
 from langchain.chains import ConversationChain
@@ -13,12 +15,12 @@ from langchain.chains.conversation.prompt import ENTITY_MEMORY_CONVERSATION_TEMP
 from langchain.llms import OpenAI
 from langchain.callbacks import get_openai_callback
 
-# Initialize Firebase Admin SDK with your Firebase project credentials
-if not firebase_admin._apps:
-    cred = credentials.Certificate("credential.json")
-    firebase_admin.initialize_app(
-        cred, {"databaseURL": "https://hackthon-f919c-default-rtdb.firebaseio.com"}
-    )
+# if not firebase_admin._apps:
+#     # Initialize the default Firebase app (call this only once)
+#     cred = credentials.Certificate('firebase.json')
+#     firebase_admin.initialize_app(cred,{'storageBucket': 'elevenlabshackathon.appspot.com'})
+
+# fire_db = firestore.client()
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="Chat with your Loved One", layout="wide")
@@ -45,27 +47,6 @@ def clear_text():
     st.session_state["input"] = ""
 
 
-# Initialize a list to store voice data (text samples)
-voice_samples = []
-
-
-# Function to get voice samples from the user
-def get_voice_sample():
-    voice_sample = st.file_uploader(
-        "Upload Voice Sample:",
-        type=["mp3", "wav"],  # Specify accepted file types (you can add more if needed)
-        key="voice_sample",
-    )
-    return voice_sample
-
-
-# Function to save the audio file in the Firebase Realtime Database
-def save_audio_to_firebase(audio_data):
-    encoded_audio_data = base64.b64encode(audio_data).decode("utf-8")
-    ref = db.reference("voice_samples")
-    ref.push(encoded_audio_data)
-
-
 # Function to get the duration of the audio file
 def get_audio_duration(audio_data):
     # Convert the base64 encoded audio data to bytes
@@ -79,17 +60,22 @@ def get_audio_duration(audio_data):
     return duration
 
 
-def save_user_response(personality_trait, accent, voice_type):
+def save_user_response(name,personality_trait, accent, voice_type):
     user_data = {
+        "name":name,
         "personality_trait": personality_trait,
         "accent": accent,
         "voice_type": voice_type,
+        "voice_samples":all_samples
+        
         # Add more data fields as needed
     }
-
-    # Push the user_data to the database
-    ref = db.reference("user_responses")
-    ref.push(user_data)
+    if upload_voice_semantics(user_data):
+        instant_voice_clone(name)
+    else:
+        st.warning("User Data not found make sure you are entering the correct information.")
+        
+   
 
 
 def create_professional_clone(personality_trait, accent, voice_type, voice_samples):
@@ -118,6 +104,7 @@ def create_professional_clone(personality_trait, accent, voice_type, voice_sampl
 
 def create_instant_clone(personality_trait, accent, voice_type, voice_samples):
     # Check if there are at least some voice samples uploaded
+    print(personality_trait,accent,"fsdf")
     if not voice_samples:
         st.warning("Creating an instant clone requires at least one voice sample.")
         return
@@ -154,7 +141,13 @@ def create_new_voice(personality_trait, accent, voice_type):
     print(f"Selected Voice Type: {voice_type}")
 
     # Save the user's responses to the Firebase Realtime Database
+
     save_user_response(personality_trait, accent, voice_type)
+
+
+
+voice_samples = []
+new_voice_inputs={}
 
 
 def new_chat():
@@ -228,38 +221,42 @@ if selected_page == "Upload Voice Samples":
     personality_trait = ""
     accent = ""
     voice_type = ""
+    name = ""
 
     with st.form(key="create_voice_form"):
-        # Add a "Create New Voice" button
+        # Prompt a window for voice creation options
+        st.subheader("Create New Voice")
+        # Ask for personality Name
+        name = st.text_input("Name", "")
+        st.write(f"Selected Name: {name}")
+
+        # Ask for personality trait
+        personality_trait = st.text_input("Personality Trait", "Friendly")
+        st.write(f"Selected Personality Trait: {personality_trait}")
+
+        # Ask for accent
+        accents = ["American", "British", "Australian", "Indian", "Others"]
+        accent = st.selectbox("Select Accent", accents)
+        st.write(f"Selected Accent: {accent}")
+
+        # Ask for voice type
+        voice_type = st.selectbox("Select Voice Type", ["Male", "Female"])
+        st.write(f"Selected Voice Type: {voice_type}")
+
+        # Use st.radio to allow the user to select only one option
+        voice_clone_option = st.radio(
+            "Select Voice Clone Option",
+            ["Professional Clone", "Instant Clone"],
+            index=0,  # Default selected option
+        )
+
+        # Display the "Create New Voice" or "Save Response" button
         if st.form_submit_button("Create New Voice"):
-            # Prompt a window for voice creation options
-            st.subheader("Create New Voice")
-            personality_trait = st.text_input("Personality Trait", "Friendly")
-            st.write(f"Selected Personality Trait: {personality_trait}")
-
-            # Ask for accent
-            accents = ["American", "British", "Australian", "Indian", "Others"]
-            accent = st.selectbox("Select Accent", accents)
-            st.write(f"Selected Accent: {accent}")
-
-            voice_type = st.selectbox("Select Voice Type", ["Male", "Female"])
-            st.write(f"Selected Voice Type: {voice_type}")
-
-            # Use st.radio to allow the user to select only one option
-            voice_clone_option = st.radio(
-                "Select Voice Clone Option",
-                ["Professional Clone", "Instant Clone"],
-                index=0,  # Default selected option
-            )
-
             if voice_clone_option == "Professional Clone":
                 create_professional_clone(
                     personality_trait, accent, voice_type, voice_samples
                 )
                 # Show the warning for instant clone requirement
-                st.warning(
-                    "Creating an instant clone requires at least one voice sample."
-                )
 
             else:
                 # Call the create_instant_clone function with the selected options and voice samples
@@ -267,14 +264,16 @@ if selected_page == "Upload Voice Samples":
                     personality_trait, accent, voice_type, voice_samples
                 )
                 # Show the warning for instant clone requirement
-                st.warning(
-                    "Creating an instant clone requires at least one voice sample."
-                )
 
-        # Show the "Save Response" button inside the form
-        if st.form_submit_button("Save Response"):
             # Save the user's response to the database
-            save_user_response(personality_trait, accent, voice_type)
+            save_user_response(name,personality_trait, accent, voice_type)
+
+            # Log the user's responses
+            st.write("User Personality Trait:", personality_trait)
+            st.write("User Accent:", accent)
+            st.write("User Voice Type:", voice_type)
+            st.write("User name:", name)
+
             st.success("User response saved successfully!")
 
     uploaded_audio = get_voice_sample()
@@ -284,7 +283,25 @@ if selected_page == "Upload Voice Samples":
     # Display the number of collected voice samples
     if voice_samples:
         st.subheader("Collected Voice Samples:")
-        st.write(f"Number of Audio Files Uploaded: {len(voice_samples)}")
+        st.write(f"Number of Audio Files Uploaded: {len(all_samples)}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 elif selected_page == "Chat":
