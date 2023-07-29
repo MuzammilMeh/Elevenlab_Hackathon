@@ -141,6 +141,9 @@ def get_text():
         label_visibility="hidden",
     )
     input_text = st.session_state["temp"]
+
+    # Log the user input
+    st.write("User Input:", input_text)
     return input_text
 
 
@@ -230,36 +233,36 @@ if selected_page == "Upload Voice Samples":
     voice_type = ""
 
     with st.form(key="create_voice_form"):
-        # Add a "Create New Voice" button
+        # Prompt a window for voice creation options
+        st.subheader("Create New Voice")
+
+        # Ask for personality trait
+        personality_trait = st.text_input("Personality Trait", "Friendly")
+        st.write(f"Selected Personality Trait: {personality_trait}")
+
+        # Ask for accent
+        accents = ["American", "British", "Australian", "Indian", "Others"]
+        accent = st.selectbox("Select Accent", accents)
+        st.write(f"Selected Accent: {accent}")
+
+        # Ask for voice type
+        voice_type = st.selectbox("Select Voice Type", ["Male", "Female"])
+        st.write(f"Selected Voice Type: {voice_type}")
+
+        # Use st.radio to allow the user to select only one option
+        voice_clone_option = st.radio(
+            "Select Voice Clone Option",
+            ["Professional Clone", "Instant Clone"],
+            index=0,  # Default selected option
+        )
+
+        # Display the "Create New Voice" or "Save Response" button
         if st.form_submit_button("Create New Voice"):
-            # Prompt a window for voice creation options
-            st.subheader("Create New Voice")
-            personality_trait = st.text_input("Personality Trait", "Friendly")
-            st.write(f"Selected Personality Trait: {personality_trait}")
-
-            # Ask for accent
-            accents = ["American", "British", "Australian", "Indian", "Others"]
-            accent = st.selectbox("Select Accent", accents)
-            st.write(f"Selected Accent: {accent}")
-
-            voice_type = st.selectbox("Select Voice Type", ["Male", "Female"])
-            st.write(f"Selected Voice Type: {voice_type}")
-
-            # Use st.radio to allow the user to select only one option
-            voice_clone_option = st.radio(
-                "Select Voice Clone Option",
-                ["Professional Clone", "Instant Clone"],
-                index=0,  # Default selected option
-            )
-
             if voice_clone_option == "Professional Clone":
                 create_professional_clone(
                     personality_trait, accent, voice_type, voice_samples
                 )
                 # Show the warning for instant clone requirement
-                st.warning(
-                    "Creating an instant clone requires at least one voice sample."
-                )
 
             else:
                 # Call the create_instant_clone function with the selected options and voice samples
@@ -267,14 +270,15 @@ if selected_page == "Upload Voice Samples":
                     personality_trait, accent, voice_type, voice_samples
                 )
                 # Show the warning for instant clone requirement
-                st.warning(
-                    "Creating an instant clone requires at least one voice sample."
-                )
 
-        # Show the "Save Response" button inside the form
-        if st.form_submit_button("Save Response"):
             # Save the user's response to the database
             save_user_response(personality_trait, accent, voice_type)
+
+            # Log the user's responses
+            st.write("User Personality Trait:", personality_trait)
+            st.write("User Accent:", accent)
+            st.write("User Voice Type:", voice_type)
+
             st.success("User response saved successfully!")
 
     uploaded_audio = get_voice_sample()
