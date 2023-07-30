@@ -7,6 +7,7 @@ from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 import os
+from elevenlabs import clone, generate, play, set_api_key,voices,stream
 
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -89,6 +90,7 @@ def get_text(personality_trait, accent, voice_type, name):
 
     # Combine the instruction text and user input to form the modified prompt
     prompt = input_text
+    print(prompt,'prompt')
 
     return prompt
 
@@ -141,14 +143,9 @@ def generate_response(user_input, personality_trait, accent, voice_type, name):
     conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm)
 
     # Combine the instruction text and user input to form the modified prompt
-    instruction_text = f"Act as {name} with Personality Trait: {personality_trait}, Accent: {accent}, Voice Type: {voice_type}\n and answer this question"
+    instruction_text = f"Act as my loved one that i lost named  {name} with Personality Trait: {personality_trait},\n and answer this question"
     prompt_with_role = instruction_text + user_input
-
-    # print(name,accent,personality_trait,'check')
-    # print("User Input:")
-    # print(user_input)
-    # print("Prompt Sent to Server:")
-    # print(prompt_with_role)
+    print(user_input,'user_input')
 
     # Get the AI response using LangChain
     response = conversation.predict(input=prompt_with_role)
@@ -269,12 +266,27 @@ elif selected_page == "Chat":
 
     
     # Get the user input
-    user_input = get_text(json_personality_trait, json_accent, json_voice_type, json_name)
+    # user_input = get_text(json_personality_trait, json_accent, json_voice_type, json_name)
+    
+    user_input = st.text_input(
+        "You: ",
+        st.session_state["input"],
+        key="input_chat",
+        placeholder="Talk to Me",
+        on_change=clear_text,
+        label_visibility="hidden",
+    )
+    print(user_input,'input_text')
 
     # Generate the AI response using LangChain
     ai_response = generate_response(
         user_input, json_personality_trait, json_accent, json_voice_type, json_name
     )
+    set_api_key("4ea3953bf7a5fd8cf5901eeab0e91ac9")
+    available_voices = voices()[-1]
+
+    audio_stream = generate(text=ai_response, voice=available_voices)
+    play(audio_stream)
 
     # Add the user input and AI response to the conversation history
     if user_input:
