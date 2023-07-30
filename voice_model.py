@@ -5,7 +5,9 @@ from elevenlabs.api import History
 from utils import global_name
 import os
 
-
+json_name=""
+json_personality_trait=""
+json_accent=""
 def instant_voice_clone(name):
     
     try:
@@ -15,6 +17,9 @@ def instant_voice_clone(name):
 
         with open(file_path, 'r') as json_file:
             json_data = json.load(json_file)
+            json_name=json_data['name']
+            json_personality_trait=json_data['personality_trait']
+            json_accent=json_data['accent']
         print(mp3_files)
     except FileNotFoundError as e:
         print(f"Error: {e}")
@@ -25,10 +30,11 @@ def instant_voice_clone(name):
     voice = clone(
         name=name,
         description= f"A {json_data['voice_type']} voice that is {json_data['personality_trait']} Perfect for talking.",
-        label={"accent":json_data['accent'],"voice type":json_data['voice_type'],"personality":json_data['personality_trait']},
+        labels={"accent":json_data['accent'],"voice type":json_data['voice_type'],"personality":json_data['personality_trait']},
       
         files=mp3_files
     )
+    print(json_data['voice_type'],json_data['personality_trait'],json_data['accent'])
     st.success("voice cloned successfully")
     print('voice cloned')
     

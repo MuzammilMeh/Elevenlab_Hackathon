@@ -1,11 +1,12 @@
 import streamlit as st
 import json
-from utils import get_voice_sample, all_samples, upload_voice_semantics
+from utils import get_voice_sample, all_samples, upload_voice_semantics,global_name
 from voice_model import instant_voice_clone
 
 from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
+import os
 
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -17,6 +18,7 @@ from langchain.prompts import (
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="Chat with your Loved One", layout="wide")
+name_global=""
 
 # Initialize session states
 if "generated" not in st.session_state:
@@ -49,6 +51,8 @@ def save_user_response(name, personality_trait, accent, voice_type):
         "voice_samples": all_samples
         # Add more data fields as needed
     }
+    
+
     if upload_voice_semantics(user_data):
         instant_voice_clone(name)
     else:
@@ -139,10 +143,12 @@ def generate_response(user_input, personality_trait, accent, voice_type, name):
     # Combine the instruction text and user input to form the modified prompt
     instruction_text = f"Act as {name} with Personality Trait: {personality_trait}, Accent: {accent}, Voice Type: {voice_type}\n and answer this question"
     prompt_with_role = instruction_text + user_input
-    print("User Input:")
-    print(user_input)
-    print("Prompt Sent to Server:")
-    print(prompt_with_role)
+
+    # print(name,accent,personality_trait,'check')
+    # print("User Input:")
+    # print(user_input)
+    # print("Prompt Sent to Server:")
+    # print(prompt_with_role)
 
     # Get the AI response using LangChain
     response = conversation.predict(input=prompt_with_role)
@@ -165,10 +171,12 @@ st.markdown(hide_default_format, unsafe_allow_html=True)
 st.sidebar.title("Navigation")
 selected_page = st.sidebar.radio("Select a Page", ["Upload Voice Samples", "Chat"])
 
-personality_trait = ""
-accent = ""
-voice_type = ""
+personality_trait = "" 
+accent = "" 
+voice_type = "" 
 name = ""
+
+print(personality_trait,'check up')
 
 
 if selected_page == "Upload Voice Samples":
@@ -229,12 +237,43 @@ if selected_page == "Upload Voice Samples":
         st.write(f"Number of Audio Files Uploaded: {len(all_samples)}")
 
 elif selected_page == "Chat":
+    folder_path='./audio'
+    subfolder_names = []
+
+    for root, dirs, files in os.walk(folder_path):
+        for dir_name in dirs:
+            subfolder_names.append(dir_name)
+
+    name=""
+    name = st.selectbox("Enter the name of voice you just cloned", subfolder_names)
+    st.write(f"Name: {name}")
+    st.warning("make sure you write the correct name !")
+
+    try:
+        file_path = f'audio/{name}/audio_info.json'
+        folder_path = os.path.join('audio', name)
+        mp3_files = [f"./audio/{name}/{file}" for file in os.listdir(folder_path) if file.endswith('.mp3')]
+
+        with open(file_path, 'r') as json_file:
+            json_data = json.load(json_file)
+            json_name=json_data['name']
+            json_personality_trait=json_data['personality_trait']
+            json_accent=json_data['accent']
+            json_voice_type=json_data['voice_type']
+        print(mp3_files)
+    except FileNotFoundError as e:
+        st.error("Please generate clone first")
+        print(f"Error: {e}")
+
+    print(json_name,json_personality_trait,json_accent,'data check')
+
+    
     # Get the user input
-    user_input = get_text(personality_trait, accent, voice_type, name)
+    user_input = get_text(json_personality_trait, json_accent, json_voice_type, json_name)
 
     # Generate the AI response using LangChain
     ai_response = generate_response(
-        user_input, personality_trait, accent, voice_type, name
+        user_input, json_personality_trait, json_accent, json_voice_type, json_name
     )
 
     # Add the user input and AI response to the conversation history
