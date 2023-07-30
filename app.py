@@ -72,7 +72,7 @@ def create_instant_clone(personality_trait, accent, voice_type, voice_samples):
 # Function to get user input
 def get_text(personality_trait, accent, voice_type, name):
     # Additional instruction text for the LLM
-    instruction_text = f"Act as {name} with Personality Trait: {personality_trait}, Accent: {accent}, Voice Type: {voice_type}\n"
+    # instruction_text = f"Act as {name} with Personality Trait: {personality_trait}, Accent: {accent}, Voice Type: {voice_type}\n"
 
     input_text = st.text_input(
         "You: ",
@@ -82,10 +82,9 @@ def get_text(personality_trait, accent, voice_type, name):
         on_change=clear_text,
         label_visibility="hidden",
     )
-    input_text = st.session_state["temp"]
 
     # Combine the instruction text and user input to form the modified prompt
-    prompt = instruction_text + input_text
+    prompt = input_text
 
     return prompt
 
@@ -116,17 +115,6 @@ def get_openai_api_key():
         return secret_data.get("api_key", "")
 
 
-prompt = ChatPromptTemplate.from_messages(
-    [
-        SystemMessagePromptTemplate.from_template(
-            "The following is a friendly conversation between a human and an AI. The AI is talkative and provides lots of specific details from its context. If the AI does not know the answer to a question, it truthfully says it does not know."
-        ),
-        MessagesPlaceholder(variable_name="history"),
-        HumanMessagePromptTemplate.from_template("{input}"),
-    ]
-)
-
-
 def generate_response(user_input, personality_trait, accent, voice_type, name):
     # Here we are setting up the OpenAI API key.
     API_O = get_openai_api_key()
@@ -139,7 +127,7 @@ def generate_response(user_input, personality_trait, accent, voice_type, name):
                 "The following is a friendly conversation between a human and an AI. The AI is talkative and provides lots of specific details from its context. If the AI does not know the answer to a question, it truthfully says it does not know."
             ),
             MessagesPlaceholder(variable_name="history"),
-            HumanMessagePromptTemplate.from_template("{input}"),
+            HumanMessagePromptTemplate.from_template("{input}", name="input"),
         ]
     )
 
@@ -149,7 +137,7 @@ def generate_response(user_input, personality_trait, accent, voice_type, name):
     conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm)
 
     # Combine the instruction text and user input to form the modified prompt
-    instruction_text = f"Act as {name} with Personality Trait: {personality_trait}, Accent: {accent}, Voice Type: {voice_type}\n"
+    instruction_text = f"Act as {name} with Personality Trait: {personality_trait}, Accent: {accent}, Voice Type: {voice_type}\n and answer this question"
     prompt_with_role = instruction_text + user_input
     print("User Input:")
     print(user_input)
@@ -254,8 +242,8 @@ elif selected_page == "Chat":
         st.session_state["past"].append(user_input)
     st.session_state["generated"].append(ai_response)
 
-    # Display the conversation history using an expander
-    with st.expander("Conversation", expanded=True):
-        for i in range(len(st.session_state["generated"]) - 1, -1, -1):
-            st.info(st.session_state["past"][i], icon="🧐")
-            st.success(st.session_state["generated"][i], icon="🤖")
+    # # Display the conversation history using an expander
+    # with st.expander("Conversation", expanded=True):
+    #     for i in range(len(st.session_state["generated"]) - 1, -1, -1):
+    #         st.info(st.session_state["past"][i], icon="🧐")
+    #         st.success(st.session_state["generated"][i], icon="🤖")
