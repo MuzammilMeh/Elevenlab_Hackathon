@@ -143,7 +143,7 @@ def generate_response(user_input, personality_trait, accent, voice_type, name):
     conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm)
 
     # Combine the instruction text and user input to form the modified prompt
-    instruction_text = f"Act as my loved one that i lost named  {name} with Personality Trait: {personality_trait},\n and answer this question"
+    instruction_text = f"Act as my loved one that i lost named  {name} with Personality Trait: {personality_trait}, make sure you reply with compassion use 3 dashes ---- in your response text to express sighs and  pauses and tone to address me as my loved one,\n and answer this question"
     prompt_with_role = instruction_text + user_input
     print(user_input,'user_input')
 
@@ -291,7 +291,7 @@ elif selected_page == "Chat":
     # Add the user input and AI response to the conversation history
     if user_input:
         st.session_state["past"].append(user_input)
-    st.session_state["generated"].append(ai_response)
+    st.session_state["generated"].append(ai_response) if st.session_state["generated"] else  None
 
     # # Display the conversation history using an expander
     # with st.expander("Conversation", expanded=True):
