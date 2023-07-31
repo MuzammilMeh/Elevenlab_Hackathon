@@ -268,7 +268,7 @@ elif selected_page == "Chat":
 
     audio_stream = generate(text=ai_response, voice=available_voices)
     # st.audio(audio_stream, format="audio/mpeg", start_time=0)
-    play(audio_stream)
+    # play(audio_stream)
 
     # Add the user input and AI response to the conversation history
     if "generated" not in st.session_state:
@@ -276,9 +276,18 @@ elif selected_page == "Chat":
     if "past" not in st.session_state:
         st.session_state["past"] = []
 
-    if user_input:
+    
+    if  st.session_state["past"] is None:
+        st.session_state["past"] = []
+    else: 
         st.session_state["past"].append(user_input)
-    st.session_state["generated"].append(ai_response)
+
+        
+
+    if st.session_state["generated"] is None:
+        st.session_state["generated"] = []
+    else:
+        st.session_state["generated"].append(ai_response)
 
     # Display the conversation history using containers
     with st.expander("Conversation", expanded=True):

@@ -1,7 +1,5 @@
 import streamlit as st
 import base64
-import firebase_admin
-from firebase_admin import credentials, db,firestore,storage
 import os
 import json
 
