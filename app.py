@@ -1,13 +1,13 @@
 import streamlit as st
 import json
-from utils import get_voice_sample, all_samples, upload_voice_semantics, global_name
+from utils import get_voice_sample, all_samples, upload_voice_semantics
 from voice_model import instant_voice_clone
 
 from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 import os
-from elevenlabs import clone, generate, play, set_api_key, voices, stream
+from elevenlabs import generate, set_api_key, voices
 
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -63,7 +63,6 @@ def save_user_response(name, personality_trait, accent, voice_type):
         )
 
 
-
 voice_samples = []
 new_voice_inputs = {}
 
@@ -101,7 +100,7 @@ def generate_response(user_input, personality_trait, accent, voice_type, name):
     conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm)
 
     # Combine the instruction text and user input to form the modified prompt
-    
+
     prompt = f"""
         Context: Act as my loved one that I lost. Your NAME: {name}. Always refer to yourself with this name: {name}. With Personality Trait: {personality_trait}, make sure you must reply with compassion and use 3 dashes --- in your response always in text to express pauses, and use proper punctuation to change the tone. Take breaks in between sentences and show emotions. To address me, always refer to me as "my loved one" or another term where name is not used - DO NOT refer to me as [User], instead just address me as your loved one. DO NOT act as an AI and never bring up that I am talking to an AI.
 
@@ -117,15 +116,11 @@ def generate_response(user_input, personality_trait, accent, voice_type, name):
 
         Now, let's start the conversation. You can provide your input, and the AI will respond as your lost loved one.
         """
-    
+
     prompt_with_role = prompt + user_input
-    print(prompt_with_role)
-    print(user_input, "user_input")
 
     # Get the AI response using LangChain
     response = conversation.predict(input=prompt_with_role)
-    print("Response from Server:")
-    print(response)
 
     return response
 
@@ -147,8 +142,6 @@ personality_trait = ""
 accent = ""
 voice_type = ""
 name = ""
-
-print(personality_trait, "check up")
 
 
 if selected_page == "Upload Voice Samples":
@@ -188,7 +181,6 @@ if selected_page == "Upload Voice Samples":
 
         # Display the "Create New Voice" or "Save Response" button
         if st.form_submit_button("Create New Voice"):
-
             save_user_response(name, personality_trait, accent, voice_type)
 
             # Log the user's responses
@@ -230,18 +222,17 @@ elif selected_page == "Chat":
             with open(file_path, "r") as json_file:
                 json_data = json.load(json_file)
                 json_name = json_data["name"] if json_data else ""
-                json_personality_trait = json_data["personality_trait"] if json_data else ""
+                json_personality_trait = (
+                    json_data["personality_trait"] if json_data else ""
+                )
                 json_accent = json_data["accent"] if json_data else ""
                 json_voice_type = json_data["voice_type"] if json_data else ""
             print(mp3_files)
         except FileNotFoundError as e:
             st.error("Please generate clone first")
             print(f"Error: {e}")
-        except TypeError as e :
+        except TypeError as e:
             st.error("Please generate clone first")
-       
-
-
 
         with st.form(key="text_input_form"):
             user_input = st.text_input(
@@ -255,10 +246,14 @@ elif selected_page == "Chat":
         # Generate the AI response using LangChain
         try:
             ai_response = generate_response(
-                user_input, json_personality_trait, json_accent, json_voice_type, json_name
+                user_input,
+                json_personality_trait,
+                json_accent,
+                json_voice_type,
+                json_name,
             )
         except:
-            ai_response=""
+            ai_response = ""
             st.warning("Initializing model please ! please clone your voice first.")
 
         voice_to_clone = None
@@ -315,30 +310,26 @@ elif selected_page == "Chat":
 
                 if ai_response is not None:
                     with st.container():
-                        
                         st.success(ai_response, icon="🤖")
                         set_api_key("f6c901a9e1db35ac8b7df9dc70932d0d")
-                        
+
                         print(voice_to_clone)
                         if voice_to_clone:
-                            print('passed')
-                            audio_stream = generate(text=ai_response, voice=voice_to_clone)
-                            
-                            
+                            print("passed")
+                            audio_stream = generate(
+                                text=ai_response, voice=voice_to_clone
+                            )
+
                         else:
                             available_voices = voices()
-                            for index,voice in enumerate(available_voices):
+                            for index, voice in enumerate(available_voices):
                                 if voice.name == json_name:
-                                    voice_to_clone=voice
-                                    print('voice selected')
-                            audio_stream = generate(text=ai_response, voice=voice_to_clone)
-                        
-                
-                        st.audio(audio_stream, format="audio/mpeg",  start_time=0)
+                                    voice_to_clone = voice
+                                    print("voice selected")
+                            audio_stream = generate(
+                                text=ai_response, voice=voice_to_clone
+                            )
+
+                        st.audio(audio_stream, format="audio/mpeg", start_time=0)
     except AssertionError:
         st.error("Voice model not found ! please clone voice first.")
-
-
-
-
-
