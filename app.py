@@ -15,11 +15,13 @@ from langchain.prompts import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
+import time
 
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="Chat with your Loved One", layout="wide")
 name_global = ""
+
 
 # Initialize session states
 if "generated" not in st.session_state:
@@ -121,7 +123,7 @@ def generate_response(user_input, personality_trait, accent, voice_type, name):
     conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm)
 
     # Combine the instruction text and user input to form the modified prompt
-    instruction_text = f"Act as my loved one that i lost named  {name} with Personality Trait: {personality_trait}, make sure you reply with compassion use 3 dashes ---- in your response text to express sighs and  pauses and tone to address me as my loved one,\n and answer this question"
+    instruction_text = f"Context : Act as my loved one that i lost, your NAME:{name} always refer to yourself with this name: {name} ,with Personality Trait: {personality_trait}, make sure you must reply with compassion and  use 3 dashes ---- in your response always in text to express pauses and use proper punctuation to change the tone, take breaks in between sentences and show emotions, to address me as my loved one, DO NOT refer to me as [User] instead just address me as your loved one, DO NOT act as an AI and never bring up that i am talking to an AI, DO's: Generate upto 120 characters in you response,\n and answer this question"
     prompt_with_role = instruction_text + user_input
     print(user_input, "user_input")
 
@@ -244,31 +246,34 @@ elif selected_page == "Chat":
         st.error("Please generate clone first")
         print(f"Error: {e}")
 
-    print(json_name, json_personality_trait, json_accent, "data check")
-
-    # Get the user input
-    # user_input = get_text(json_personality_trait, json_accent, json_voice_type, json_name)
-
-    user_input = st.text_input(
-        "You: ",
-        st.session_state["input"],
-        key="input_chat",
-        placeholder="Talk to Me",
-        on_change=clear_text,
-        label_visibility="hidden",
-    )
-    print(user_input, "input_text")
+    with st.form(key="text_input_form"):
+        user_input = st.text_input(
+            "You: ",
+            st.session_state["input"],
+            placeholder="Talk to Me",
+            label_visibility="hidden",
+        )
+        submit_button = st.form_submit_button("Submit")
 
     # Generate the AI response using LangChain
     ai_response = generate_response(
         user_input, json_personality_trait, json_accent, json_voice_type, json_name
     )
-    set_api_key("4ea3953bf7a5fd8cf5901eeab0e91ac9")
-    available_voices = voices()[-1]
 
-    audio_stream = generate(text=ai_response, voice=available_voices)
-    # st.audio(audio_stream, format="audio/mpeg", start_time=0)
-    # play(audio_stream)
+    voice_to_clone = None
+    if submit_button:
+        # Process the user input here (e.g., generate the AI response)
+        # If you want to clear the input field after submission, update the session state variable
+        progress_bar = st.progress(0)
+        for i in range(100):
+            # Simulate progress
+            progress_bar.progress(i + 1)
+            time.sleep(1)  # Add a small delay to simulate processing time
+        # Process the user input here (e.g., generate the AI response)
+        # If you want to clear the input field after submission, update the session state variable
+        st.session_state["input"] = ""
+        # Clear the progress bar after response is generated
+        progress_bar.empty()
 
     # Add the user input and AI response to the conversation history
     if "generated" not in st.session_state:
@@ -276,13 +281,10 @@ elif selected_page == "Chat":
     if "past" not in st.session_state:
         st.session_state["past"] = []
 
-    
-    if  st.session_state["past"] is None:
+    if st.session_state["past"] is None:
         st.session_state["past"] = []
-    else: 
+    else:
         st.session_state["past"].append(user_input)
-
-        
 
     if st.session_state["generated"] is None:
         st.session_state["generated"] = []
@@ -308,11 +310,28 @@ elif selected_page == "Chat":
 
             if past_message is not None:
                 st.info(past_message, icon="🧐")
+
             if ai_response is not None:
                 with st.container():
+                    
                     st.success(ai_response, icon="🤖")
-                    set_api_key("4ea3953bf7a5fd8cf5901eeab0e91ac9")
-                    available_voices = voices()[-1]
-                    audio_stream = generate(text=ai_response, voice=available_voices)
-                    # play(audio_stream)
-                    st.audio(audio_stream, format="audio/mpeg", start_time=0)
+                    set_api_key("f6c901a9e1db35ac8b7df9dc70932d0d")
+                    
+                    print(voice_to_clone)
+                    if voice_to_clone:
+                        print('passed')
+                        audio_stream = generate(text=ai_response, voice=voice_to_clone)
+                        
+                        
+                    else:
+                        available_voices = voices()
+                        for index,voice in enumerate(available_voices):
+                            if voice.name == json_name:
+                                voice_to_clone=voice
+                                print('voice selected')
+                        audio_stream = generate(text=ai_response, voice=voice_to_clone)
+                       
+            
+                    st.audio(audio_stream, format="audio/mpeg",  start_time=0)
+
+

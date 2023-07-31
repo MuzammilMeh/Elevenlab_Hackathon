@@ -18,19 +18,17 @@ def instant_voice_clone(name):
 
         with open(file_path, 'r') as json_file:
             json_data = json.load(json_file)
-            json_name=json_data['name']
-            json_personality_trait=json_data['personality_trait']
-            json_accent=json_data['accent']
+   
         print(mp3_files)
     except FileNotFoundError as e:
         print(f"Error: {e}")
         
 
-    set_api_key("4ea3953bf7a5fd8cf5901eeab0e91ac9")
+    set_api_key("f6c901a9e1db35ac8b7df9dc70932d0d")
 
     voice = clone(
         name=name,
-        description= f"A {json_data['voice_type']} voice that is {json_data['personality_trait']} Perfect for talking.",
+        description= f"A {json_data['voice_type']} voice that is {json_data['personality_trait']} and easy to talk, show's alot of emotions and very expressive.",
         labels={"accent":json_data['accent'],"voice type":json_data['voice_type'],"personality":json_data['personality_trait']},
       
         files=mp3_files
