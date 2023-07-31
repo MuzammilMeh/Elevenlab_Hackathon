@@ -1,4 +1,4 @@
-elevenlabs==0.2.21
-langchain==0.0.247
-streamlit==1.25.0
+streamlit
+langchain
 openai
+elevenlabs

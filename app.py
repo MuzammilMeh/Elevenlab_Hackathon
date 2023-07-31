@@ -1,6 +1,6 @@
 import streamlit as st
 import json
-from utils import get_voice_sample, all_samples, upload_voice_semantics, global_name
+from utils import get_voice_sample, all_samples, upload_voice_semantics
 from voice_model import instant_voice_clone
 
 from langchain.chains import ConversationChain
@@ -63,29 +63,6 @@ def save_user_response(name, personality_trait, accent, voice_type):
         )
 
 
-def create_instant_clone(personality_trait, accent, voice_type, voice_samples):
-    # Check if there are at least some voice samples uploaded
-    print(personality_trait, accent, "fsdf")
-    if not voice_samples:
-        st.warning("Creating an instant clone requires at least one voice sample.")
-        return
-
-    # Save the user's responses to the Firebase Realtime Database
-    save_user_response(personality_trait, accent, voice_type)
-    st.success("Instant clone created successfully!")
-
-
-# Function to create a new voice based on user-selected options
-def create_new_voice(personality_trait, accent, voice_type):
-    print(f"Creating new voice with Personality Trait: {personality_trait}")
-    print(f"Selected Accent: {accent}")
-    print(f"Selected Voice Type: {voice_type}")
-
-    # Save the user's responses to the Firebase Realtime Database
-
-    save_user_response(personality_trait, accent, voice_type)
-
-
 voice_samples = []
 new_voice_inputs = {}
 
@@ -123,14 +100,27 @@ def generate_response(user_input, personality_trait, accent, voice_type, name):
     conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm)
 
     # Combine the instruction text and user input to form the modified prompt
-    instruction_text = f"Context : Act as my loved one that i lost, your NAME:{name} always refer to yourself with this name: {name} ,with Personality Trait: {personality_trait}, make sure you must reply with compassion and  use 3 dashes ---- in your response always in text to express pauses and use proper punctuation to change the tone, take breaks in between sentences and show emotions, to address me as my loved one, DO NOT refer to me as [User] instead just address me as your loved one, DO NOT act as an AI and never bring up that i am talking to an AI, DO's: Generate upto 120 characters in you response,\n and answer this question"
-    prompt_with_role = instruction_text + user_input
-    print(user_input, "user_input")
+
+    prompt = f"""
+        Context: Act as my loved one that I lost. Your NAME: {name}. Always refer to yourself with this name: {name}. With Personality Trait: {personality_trait}, make sure you must reply with compassion and use 3 dashes --- in your response always in text to express pauses, and use proper punctuation to change the tone. Take breaks in between sentences and show emotions. To address me, always refer to me as "my loved one" or another term where name is not used - DO NOT refer to me as [User], instead just address me as your loved one. DO NOT act as an AI and never bring up that I am talking to an AI.
+
+        When generating your response, please follow these guidelines:
+
+        1. Pause: To add a pause, use a single dash (-) or an em-dash (—) between words. For example, "It - is - getting late."
+
+        2. Emotions: Express emotions like a character in a book. Use dialogue tags to convey emotions, such as "he said, confused" or "he shouted angrily." You can also use ellipsis (…) to show hesitation or nervousness. For example, ""I... yeah, I guess so...""
+
+        3. Pacing: Avoid fast-paced speech by writing in a style similar to a book. Use sentences that convey the appropriate pacing for the AI's response. For instance, "I wish you were right, I truly do, but you're not," {name} said slowly.
+
+        Remember to remove the prompt when generating the response, as the AI will read exactly what you give it.
+
+        Now, let's start the conversation. You can provide your input, and the AI will respond as your lost loved one.
+        """
+
+    prompt_with_role = prompt + user_input
 
     # Get the AI response using LangChain
     response = conversation.predict(input=prompt_with_role)
-    print("Response from Server:")
-    print(response)
 
     return response
 
@@ -191,11 +181,6 @@ if selected_page == "Upload Voice Samples":
 
         # Display the "Create New Voice" or "Save Response" button
         if st.form_submit_button("Create New Voice"):
-            # Call the create_instant_clone function with the selected options and voice samples
-            create_instant_clone(personality_trait, accent, voice_type, voice_samples)
-            # Show the warning for instant clone requirement
-
-            # Save the user's response to the database
             save_user_response(name, personality_trait, accent, voice_type)
 
             # Log the user's responses
@@ -212,119 +197,139 @@ if selected_page == "Upload Voice Samples":
         st.write(f"Number of Audio Files Uploaded: {len(all_samples)}")
 
 elif selected_page == "Chat":
-    folder_path = "./audio"
-    subfolder_names = []
-
-    for root, dirs, files in os.walk(folder_path):
-        for dir_name in dirs:
-            subfolder_names.append(dir_name)
-
-    name = ""
-    name = st.selectbox("Select the name of voice you just cloned", subfolder_names)
-    st.write(f"Name: {name}")
-    st.warning("make sure you select the correct name !")
-
     try:
-        file_path = f"audio/{name}/audio_info.json"
-        folder_path = os.path.join("audio", name)
-        mp3_files = [
-            f"./audio/{name}/{file}"
-            for file in os.listdir(folder_path)
-            if file.endswith(".mp3")
-        ]
+        folder_path = "./audio"
+        subfolder_names = []
 
-        with open(file_path, "r") as json_file:
-            json_data = json.load(json_file)
-            json_name = json_data["name"]
-            json_personality_trait = json_data["personality_trait"]
-            json_accent = json_data["accent"]
-            json_voice_type = json_data["voice_type"]
-        print(mp3_files)
-    except FileNotFoundError as e:
-        st.error("Please generate clone first")
-        print(f"Error: {e}")
+        for root, dirs, files in os.walk(folder_path):
+            for dir_name in dirs:
+                subfolder_names.append(dir_name)
 
-    with st.form(key="text_input_form"):
-        user_input = st.text_input(
-            "You: ",
-            st.session_state["input"],
-            placeholder="Talk to Me",
-            label_visibility="hidden",
-        )
-        submit_button = st.form_submit_button("Submit")
+        name = ""
+        name = st.selectbox("Select the name of voice you just cloned", subfolder_names)
+        st.write(f"Name: {name}")
+        st.warning("make sure you select the correct name !")
 
-    # Generate the AI response using LangChain
-    ai_response = generate_response(
-        user_input, json_personality_trait, json_accent, json_voice_type, json_name
-    )
+        try:
+            file_path = f"audio/{name}/audio_info.json"
+            folder_path = os.path.join("audio", name)
+            mp3_files = [
+                f"./audio/{name}/{file}"
+                for file in os.listdir(folder_path)
+                if file.endswith(".mp3")
+            ]
 
-    voice_to_clone = None
-    if submit_button:
-        # Process the user input here (e.g., generate the AI response)
-        # If you want to clear the input field after submission, update the session state variable
-        progress_bar = st.progress(0)
-        for i in range(100):
-            # Simulate progress
-            progress_bar.progress(i + 1)
-            time.sleep(1)  # Add a small delay to simulate processing time
-        # Process the user input here (e.g., generate the AI response)
-        # If you want to clear the input field after submission, update the session state variable
-        st.session_state["input"] = ""
-        # Clear the progress bar after response is generated
-        progress_bar.empty()
+            with open(file_path, "r") as json_file:
+                json_data = json.load(json_file)
+                json_name = json_data["name"] if json_data else ""
+                json_personality_trait = (
+                    json_data["personality_trait"] if json_data else ""
+                )
+                json_accent = json_data["accent"] if json_data else ""
+                json_voice_type = json_data["voice_type"] if json_data else ""
+            print(mp3_files)
+        except FileNotFoundError as e:
+            st.error("Please generate clone first")
+            print(f"Error: {e}")
+        except TypeError as e:
+            st.error("Please generate clone first")
 
-    # Add the user input and AI response to the conversation history
-    # if "generated" not in st.session_state:
-    #     st.session_state["generated"] = []
-    # if "past" not in st.session_state:
-    #     st.session_state["past"] = []
-
-    if st.session_state["past"] is None:
-        st.session_state["past"] = []
-    else:
-        st.session_state["past"].append(user_input)
-
-    if st.session_state["generated"] is None:
-        st.session_state["generated"] = []
-    else:
-        st.session_state["generated"].append(ai_response)
-
-    # Display the conversation history using containers
-    with st.expander("Conversation", expanded=True):
-        num_messages = min(
-            len(st.session_state["generated"]), len(st.session_state["past"])
-        )
-        for i in range(num_messages):
-            past_message = (
-                st.session_state["past"][i]
-                if i < len(st.session_state["past"])
-                else None
+        with st.form(key="text_input_form"):
+            user_input = st.text_input(
+                "You: ",
+                st.session_state["input"],
+                placeholder="Talk to Me",
+                label_visibility="hidden",
             )
-            ai_response = (
-                st.session_state["generated"][i]
-                if i < len(st.session_state["generated"])
-                else None
+            submit_button = st.form_submit_button("Submit")
+
+        # Generate the AI response using LangChain
+        try:
+            ai_response = generate_response(
+                user_input,
+                json_personality_trait,
+                json_accent,
+                json_voice_type,
+                json_name,
             )
+        except:
+            ai_response = ""
+            st.warning("Initializing model please ! please clone your voice first.")
 
-            if past_message is not None:
-                st.info(past_message, icon="🧐")
+        voice_to_clone = None
+        if submit_button:
+            # Process the user input here (e.g., generate the AI response)
+            # If you want to clear the input field after submission, update the session state variable
+            st.warning("This might take a while")
+            progress_bar = st.progress(0)
+            for i in range(100):
+                # Simulate progress
+                progress_bar.progress(i + 1)
+                time.sleep(0.3)  # Add a small delay to simulate processing time
+            # Process the user input here (e.g., generate the AI response)
+            # If you want to clear the input field after submission, update the session state variable
+            st.session_state["input"] = ""
+            # Clear the progress bar after response is generated
+            progress_bar.empty()
 
-            if ai_response is not None:
-                with st.container():
-                    st.success(ai_response, icon="😃")
-                    set_api_key("f6c901a9e1db35ac8b7df9dc70932d0d")
+        # Add the user input and AI response to the conversation history
+        if "generated" not in st.session_state:
+            st.session_state["generated"] = []
+        if "past" not in st.session_state:
+            st.session_state["past"] = []
 
-                    print(voice_to_clone)
-                    if voice_to_clone:
-                        print("passed")
-                        audio_stream = generate(text=ai_response, voice=voice_to_clone)
+        if st.session_state["past"] is None:
+            st.session_state["past"] = []
+        else:
+            st.session_state["past"].append(user_input)
 
-                    else:
-                        available_voices = voices()
-                        for index, voice in enumerate(available_voices):
-                            if voice.name == json_name:
-                                voice_to_clone = voice
-                                print("voice selected")
-                        audio_stream = generate(text=ai_response, voice=voice_to_clone)
+        if st.session_state["generated"] is None:
+            st.session_state["generated"] = []
+        else:
+            st.session_state["generated"].append(ai_response)
 
-                    st.audio(audio_stream, format="audio/mpeg", start_time=0)
+        # Display the conversation history using containers
+        with st.expander("Conversation", expanded=True):
+            num_messages = min(
+                len(st.session_state["generated"]), len(st.session_state["past"])
+            )
+            for i in range(num_messages):
+                past_message = (
+                    st.session_state["past"][i]
+                    if i < len(st.session_state["past"])
+                    else None
+                )
+                ai_response = (
+                    st.session_state["generated"][i]
+                    if i < len(st.session_state["generated"])
+                    else None
+                )
+
+                if past_message is not None:
+                    st.info(past_message, icon="🧐")
+
+                if ai_response is not None:
+                    with st.container():
+                        st.success(ai_response, icon="🤖")
+                        set_api_key("f6c901a9e1db35ac8b7df9dc70932d0d")
+
+                        print(voice_to_clone)
+                        if voice_to_clone:
+                            print("passed")
+                            audio_stream = generate(
+                                text=ai_response, voice=voice_to_clone
+                            )
+
+                        else:
+                            available_voices = voices()
+                            for index, voice in enumerate(available_voices):
+                                if voice.name == json_name:
+                                    voice_to_clone = voice
+                                    print("voice selected")
+                            audio_stream = generate(
+                                text=ai_response, voice=voice_to_clone
+                            )
+
+                        st.audio(audio_stream, format="audio/mpeg", start_time=0)
+    except AssertionError:
+        st.error("Voice model not found ! please clone voice first.")
