@@ -28,7 +28,7 @@ def instant_voice_clone(name):
 
     voice = clone(
         name=name,
-        description= f"A {json_data['voice_type']} voice that is {json_data['personality_trait']} and easy to talk, show's alot of emotions and very expressive.",
+        description= f"A {json_data['voice_type']} voice that is {json_data['personality_trait']} and easy to talk, very calm and composed, takes alot of pauses while taking and even whispers when compassionate, show's alot of emotions and very expressive.",
         labels={"accent":json_data['accent'],"voice type":json_data['voice_type'],"personality":json_data['personality_trait']},
       
         files=mp3_files
