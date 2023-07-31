@@ -7,7 +7,7 @@ from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 import os
-from elevenlabs import clone, generate, play, set_api_key, voices, stream
+from elevenlabs import generate, set_api_key, voices
 
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -153,8 +153,6 @@ accent = ""
 voice_type = ""
 name = ""
 
-print(personality_trait, "check up")
-
 
 if selected_page == "Upload Voice Samples":
     st.subheader("Upload Voice Samples")
@@ -276,10 +274,10 @@ elif selected_page == "Chat":
         progress_bar.empty()
 
     # Add the user input and AI response to the conversation history
-    if "generated" not in st.session_state:
-        st.session_state["generated"] = []
-    if "past" not in st.session_state:
-        st.session_state["past"] = []
+    # if "generated" not in st.session_state:
+    #     st.session_state["generated"] = []
+    # if "past" not in st.session_state:
+    #     st.session_state["past"] = []
 
     if st.session_state["past"] is None:
         st.session_state["past"] = []
@@ -313,25 +311,20 @@ elif selected_page == "Chat":
 
             if ai_response is not None:
                 with st.container():
-                    
-                    st.success(ai_response, icon="🤖")
+                    st.success(ai_response, icon="😃")
                     set_api_key("f6c901a9e1db35ac8b7df9dc70932d0d")
-                    
+
                     print(voice_to_clone)
                     if voice_to_clone:
-                        print('passed')
+                        print("passed")
                         audio_stream = generate(text=ai_response, voice=voice_to_clone)
-                        
-                        
+
                     else:
                         available_voices = voices()
-                        for index,voice in enumerate(available_voices):
+                        for index, voice in enumerate(available_voices):
                             if voice.name == json_name:
-                                voice_to_clone=voice
-                                print('voice selected')
+                                voice_to_clone = voice
+                                print("voice selected")
                         audio_stream = generate(text=ai_response, voice=voice_to_clone)
-                       
-            
-                    st.audio(audio_stream, format="audio/mpeg",  start_time=0)
 
-
+                    st.audio(audio_stream, format="audio/mpeg", start_time=0)
