@@ -311,7 +311,7 @@ elif selected_page == "Chat":
                 if ai_response is not None:
                     with st.container():
                         st.success(ai_response, icon="🤖")
-                        set_api_key("f6c901a9e1db35ac8b7df9dc70932d0d")
+                        set_api_key("927043204ded69e0ad9e583d12467180")
 
                         print(voice_to_clone)
                         if voice_to_clone:
