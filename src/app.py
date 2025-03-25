@@ -1,7 +1,7 @@
 import streamlit as st
 import json
-from utils import get_voice_sample, all_samples, upload_voice_semantics
-from voice_model import instant_voice_clone
+from src.utils import get_voice_sample, all_samples, upload_voice_semantics
+from src.voice_model import instant_voice_clone
 
 from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
@@ -311,7 +311,7 @@ elif selected_page == "Chat":
                 if ai_response is not None:
                     with st.container():
                         st.success(ai_response, icon="🤖")
-                        set_api_key("927043204ded69e0ad9e583d12467180")
+                        set_api_key("elevenlab-key")
 
                         print(voice_to_clone)
                         if voice_to_clone:
