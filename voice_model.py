@@ -27,7 +27,7 @@ def instant_voice_clone(name):
     except FileNotFoundError as e:
         print(f"Error: {e}")
 
-    set_api_key("f6c901a9e1db35ac8b7df9dc70932d0d")
+    set_api_key("elevenlab-key")
 
     voice = clone(
         name=name,
